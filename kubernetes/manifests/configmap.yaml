@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cost-optimizer-config
+  namespace: cost-optimizer
+data:
+  AWS_REGION: "us-east-1"
+  DB_NAME: "cost_optimizer"
+  SCAN_INTERVAL: "3600"

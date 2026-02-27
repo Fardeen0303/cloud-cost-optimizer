@@ -1,0 +1,19 @@
+---
+- name: Deploy Cost Optimizer Services
+  hosts: localhost
+  
+  tasks:
+    - name: Apply Kubernetes manifests
+      command: kubectl apply -f {{ item }}
+      loop:
+        - kubernetes/manifests/namespace.yaml
+        - kubernetes/manifests/configmap.yaml
+        - kubernetes/manifests/secret.yaml
+        - kubernetes/manifests/api-gateway-deployment.yaml
+        - kubernetes/manifests/cost-scanner-deployment.yaml
+    
+    - name: Wait for deployments
+      command: kubectl rollout status deployment/{{ item }} -n cost-optimizer
+      loop:
+        - api-gateway
+        - cost-scanner

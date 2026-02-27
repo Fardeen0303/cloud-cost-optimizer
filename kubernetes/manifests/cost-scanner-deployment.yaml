@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cost-scanner
+  namespace: cost-optimizer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cost-scanner
+  template:
+    metadata:
+      labels:
+        app: cost-scanner
+    spec:
+      containers:
+      - name: cost-scanner
+        image: cost-optimizer/cost-scanner:latest
+        envFrom:
+        - configMapRef:
+            name: cost-optimizer-config
+        - secretRef:
+            name: cost-optimizer-secret
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

@@ -1,0 +1,33 @@
+---
+- name: Setup Cost Optimizer Infrastructure
+  hosts: eks_nodes
+  become: yes
+  
+  tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+    
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+    
+    - name: Start Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+    
+    - name: Install kubectl
+      get_url:
+        url: https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+    
+    - name: Install monitoring agents
+      apt:
+        name:
+          - prometheus-node-exporter
+        state: present

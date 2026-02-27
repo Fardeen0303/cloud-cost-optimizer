@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_REGISTRY = 'your-registry'
+        AWS_REGION = 'us-east-1'
+        KUBECONFIG = credentials('kubeconfig')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/your-repo/cloud-cost-optimizer.git'
+            }
+        }
+        
+        stage('Build Docker Images') {
+            parallel {
+                stage('API Gateway') {
+                    steps {
+                        sh 'docker build -t ${DOCKER_REGISTRY}/api-gateway:${BUILD_NUMBER} ./services/api-gateway'
+                    }
+                }
+                stage('Cost Scanner') {
+                    steps {
+                        sh 'docker build -t ${DOCKER_REGISTRY}/cost-scanner:${BUILD_NUMBER} ./services/cost-scanner'
+                    }
+                }
+            }
+        }
+        
+        stage('Push Images') {
+            steps {
+                sh '''
+                    docker push ${DOCKER_REGISTRY}/api-gateway:${BUILD_NUMBER}
+                    docker push ${DOCKER_REGISTRY}/cost-scanner:${BUILD_NUMBER}
+                '''
+            }
+        }
+        
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    kubectl apply -f kubernetes/manifests/namespace.yaml
+                    kubectl apply -f kubernetes/manifests/configmap.yaml
+                    kubectl apply -f kubernetes/manifests/secret.yaml
+                    kubectl set image deployment/api-gateway api-gateway=${DOCKER_REGISTRY}/api-gateway:${BUILD_NUMBER} -n cost-optimizer
+                    kubectl set image deployment/cost-scanner cost-scanner=${DOCKER_REGISTRY}/cost-scanner:${BUILD_NUMBER} -n cost-optimizer
+                '''
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed!'
+        }
+    }
+}

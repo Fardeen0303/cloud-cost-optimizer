@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: cost_optimizer
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - postgres_data:/var/lib/postgresql/data
+
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: postgres
+      DB_NAME: cost_optimizer
+      DB_USER: admin
+      DB_PASSWORD: password123
+    depends_on:
+      - postgres
+
+  cost-scanner:
+    build: ./services/cost-scanner
+    environment:
+      DB_HOST: postgres
+      DB_NAME: cost_optimizer
+      DB_USER: admin
+      DB_PASSWORD: password123
+      AWS_REGION: us-east-1
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+
+volumes:
+  postgres_data:
