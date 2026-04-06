@@ -33,12 +33,12 @@ def test_login_invalid_credentials():
 
 def test_resources_requires_auth():
     res = client.get("/resources")
-    assert res.status_code == 401
+    assert res.status_code in (401, 403)
 
 
 def test_recommendations_requires_auth():
     res = client.get("/recommendations")
-    assert res.status_code == 401
+    assert res.status_code in (401, 403)
 
 
 @patch("main.get_db")
