@@ -58,8 +58,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+def verify_password(plain: str, hashed: bytes) -> bool:
+    return bcrypt.checkpw(plain.encode('utf-8'), hashed if isinstance(hashed, bytes) else hashed.encode('utf-8'))
+
 USERS = {
-    os.getenv('ADMIN_USER', 'admin'): bcrypt.hashpw(os.getenv('ADMIN_PASSWORD', 'changeme').encode(), bcrypt.gensalt())
+    os.getenv('ADMIN_USER', 'admin'): bcrypt.hashpw(os.getenv('ADMIN_PASSWORD', 'changeme').encode('utf-8'), bcrypt.gensalt())
 }
 
 
@@ -89,7 +92,7 @@ def health():
 @app.post("/auth/login")
 def login(body: LoginRequest):
     hashed = USERS.get(body.username)
-    if not hashed or not bcrypt.checkpw(body.password.encode(), hashed):
+    if not hashed or not verify_password(body.password, hashed):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     return {"access_token": create_token(body.username), "token_type": "bearer"}
 
