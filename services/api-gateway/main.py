@@ -11,7 +11,7 @@ from pydantic import BaseModel
 import psycopg2
 import psycopg2.extras
 import jwt as pyjwt
-from passlib.context import CryptContext
+import bcrypt
 
 sys.path.insert(0, '/app/notifier')
 from notifier import alert
@@ -32,7 +32,6 @@ SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'change-me-in-production')
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_MINUTES = 60
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer()
 
 
@@ -60,7 +59,7 @@ class LoginRequest(BaseModel):
 
 
 USERS = {
-    os.getenv('ADMIN_USER', 'admin'): pwd_context.hash(os.getenv('ADMIN_PASSWORD', 'changeme')[:72])
+    os.getenv('ADMIN_USER', 'admin'): bcrypt.hashpw(os.getenv('ADMIN_PASSWORD', 'changeme').encode(), bcrypt.gensalt())
 }
 
 
@@ -90,7 +89,7 @@ def health():
 @app.post("/auth/login")
 def login(body: LoginRequest):
     hashed = USERS.get(body.username)
-    if not hashed or not pwd_context.verify(body.password, hashed):
+    if not hashed or not bcrypt.checkpw(body.password.encode(), hashed):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     return {"access_token": create_token(body.username), "token_type": "bearer"}
 
