@@ -13,7 +13,7 @@ import psycopg2.extras
 import jwt as pyjwt
 from passlib.context import CryptContext
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'notifier'))
+sys.path.insert(0, '/app/notifier')
 from notifier import alert
 
 logging.basicConfig(level=logging.INFO)
