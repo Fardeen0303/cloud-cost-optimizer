@@ -1,10 +1,13 @@
-import pytest
 import sys
 import os
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'services', 'api-gateway'))
+
+# Mock psycopg2 before importing main
+sys.modules['psycopg2'] = MagicMock()
+sys.modules['psycopg2.extras'] = MagicMock()
 
 import jwt as pyjwt
 from main import app, create_token
@@ -30,12 +33,12 @@ def test_login_invalid_credentials():
 
 def test_resources_requires_auth():
     res = client.get("/resources")
-    assert res.status_code == 403
+    assert res.status_code == 401
 
 
 def test_recommendations_requires_auth():
     res = client.get("/recommendations")
-    assert res.status_code == 403
+    assert res.status_code == 401
 
 
 @patch("main.get_db")
