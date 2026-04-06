@@ -160,7 +160,9 @@ User (Dashboard / API):
 - Jenkins, Git, Docker Registry
 
 ### Monitoring
-- Prometheus, Grafana, CloudWatch
+- Prometheus (scrapes `/metrics` from API Gateway every 15s)
+- Grafana (dashboard: request rate, p95 latency, error rate)
+- CloudWatch (EC2 CPU metrics)
 
 ### Cloud Services (AWS)
 - EC2, RDS (encrypted), EKS, Cost Explorer API, IAM, CloudWatch
@@ -190,6 +192,8 @@ Access:
 - Dashboard: http://localhost:3000
 - API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3001 (admin / admin)
 
 ### Verify Everything is Running
 

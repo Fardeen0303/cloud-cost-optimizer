@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'cost-optimizer'
+    orgId: 1
+    folder: 'Cloud Cost Optimizer'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards

@@ -12,6 +12,7 @@ import psycopg2
 import psycopg2.extras
 import jwt as pyjwt
 import bcrypt
+from prometheus_fastapi_instrumentator import Instrumentator
 
 sys.path.insert(0, '/app/notifier')
 from notifier import alert
@@ -20,6 +21,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Cloud Cost Optimizer API")
+
+Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,
