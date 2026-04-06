@@ -209,17 +209,17 @@ Copy `.env.example` to `.env` and configure:
 # Database
 DB_NAME=cost_optimizer
 DB_USER=admin
-DB_PASSWORD=your-secure-password
+DB_PASSWORD=<your-secure-password>
 
 # AWS
 AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_ACCESS_KEY_ID=<your-access-key>
+AWS_SECRET_ACCESS_KEY=<your-secret-key>
 
 # API Auth
-JWT_SECRET_KEY=your-secret-key
+JWT_SECRET_KEY=<generate-with: openssl rand -hex 32>
 ADMIN_USER=admin
-ADMIN_PASSWORD=your-password
+ADMIN_PASSWORD=<your-admin-password>
 
 # Notifications (leave blank to disable)
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
@@ -241,7 +241,7 @@ Full interactive docs available at: **http://localhost:8000/docs**
 ```bash
 # Login to get token
 POST /auth/login
-{"username": "admin", "password": "yourpassword"}
+{"username": "admin", "password": "<your-admin-password>"}
 
 # Use token in all requests
 Authorization: Bearer <token>
