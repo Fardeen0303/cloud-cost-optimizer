@@ -38,3 +38,8 @@ resource "aws_iam_role_policy_attachment" "cost_scanner" {
   role       = aws_iam_role.cost_scanner.name
   policy_arn = aws_iam_policy.cost_scanner.arn
 }
+
+resource "aws_iam_instance_profile" "cost_scanner" {
+  name = "${var.project_name}-cost-scanner-profile"
+  role = aws_iam_role.cost_scanner.name
+}

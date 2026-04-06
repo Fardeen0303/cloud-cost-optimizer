@@ -15,10 +15,10 @@ venv/
 *.tfstate
 *.tfstate.backup
 .terraform/
-.terraform.lock.hcl
 
 # Docker
 *.log
+*.backup
 
 # IDE
 .vscode/

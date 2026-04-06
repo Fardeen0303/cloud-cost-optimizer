@@ -11,16 +11,14 @@ variable "vpc_cidr" {
 }
 
 variable "db_username" {
-  default = "admin"
+  default = "dbadmin"
 }
 
 variable "db_password" {
   sensitive = true
 }
 
-
-variable "eks_public_access_cidrs" {
-  description = "CIDRs allowed to access EKS public endpoint"
-  type        = list(string)
-  default     = ["10.0.0.0/8"]
+variable "ssh_public_key_path" {
+  description = "Path to your SSH public key, e.g. ~/.ssh/id_rsa.pub"
+  default     = "~/.ssh/id_rsa.pub"
 }

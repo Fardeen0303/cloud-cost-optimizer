@@ -1,7 +1,7 @@
 # Cloud Cost Optimizer
 
 ![CI](https://github.com/Fardeen0303/cloud-cost-optimizer/actions/workflows/ci.yml/badge.svg)
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.103-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
@@ -113,11 +113,12 @@ Organizations spend 30-40% more on cloud infrastructure than necessary due to:
 | Service | Responsibility | Technology | Port |
 |---------|---------------|------------|------|
 | **API Gateway** | Auth, routing, approve/reject | FastAPI, PyJWT | 8000 |
-| **Cost Scanner** | AWS EC2 + CloudWatch scanning | Boto3, FastAPI | 8001 |
+| **Cost Scanner** | AWS EC2 + CloudWatch scanning | Boto3, FastAPI | internal |
 | **Recommendation Engine** | CPU analysis, recommendations | Python, FastAPI | 8002 |
 | **Auto-Scaler** | Execute approved actions | Boto3 | - |
 | **Scheduler** | Trigger scan + analysis | APScheduler | - |
 | **Notifier** | Slack & Teams alerts | Requests | - |
+| **Frontend** | Interactive dashboard | Python, HTML | 3000 |
 
 ### Data Flow
 
@@ -144,7 +145,7 @@ User (Dashboard / API):
 ## 🛠️ Technology Stack
 
 ### Backend
-- Python 3.10+, FastAPI, Boto3, PostgreSQL, psycopg2
+- Python 3.11+, FastAPI, Boto3, PostgreSQL, psycopg2
 
 ### Security
 - PyJWT, Passlib (bcrypt), python-multipart 0.0.22+
@@ -323,6 +324,7 @@ kubectl apply -f kubernetes/manifests/
 
 ### Infrastructure Provisioned
 - VPC with public/private subnets
+- EC2 instances (bastion/worker nodes)
 - EKS cluster (endpoint restricted by CIDR)
 - RDS PostgreSQL (encrypted at rest, IAM auth enabled)
 - IAM roles with least-privilege policies
@@ -338,7 +340,7 @@ kubectl apply -f kubernetes/manifests/
 - RDS IAM authentication enabled
 - EKS public endpoint restricted to specific CIDRs
 - Kubernetes secrets managed via External Secrets / Sealed Secrets
-- Vulnerable dependencies patched (`python-multipart 0.0.22+`, `PyJWT 2.8.0`)
+- Vulnerable dependencies patched (`python-multipart 0.0.22+`, `PyJWT 2.12.0`)
 - Log injection prevention on all user inputs
 
 ---
