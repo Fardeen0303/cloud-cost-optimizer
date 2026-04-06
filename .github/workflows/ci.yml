@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install fastapi pydantic "PyJWT==2.12.0" "passlib[bcrypt]==1.7.4" \
+            python-dotenv "python-multipart==0.0.22" "cryptography==42.0.4" \
+            httpx pytest "bcrypt==4.0.1"
+
+      - name: Run tests
+        run: pytest tests/ -v
