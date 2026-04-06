@@ -22,9 +22,20 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install fastapi pydantic "PyJWT==2.12.0" "passlib[bcrypt]==1.7.4" \
-            python-dotenv "python-multipart==0.0.22" "cryptography==42.0.4" \
-            httpx pytest "bcrypt==4.0.1"
+          pip install \
+            "fastapi==0.103.1" \
+            "uvicorn==0.23.2" \
+            "pydantic==2.4.0" \
+            "PyJWT==2.12.0" \
+            "passlib==1.7.4" \
+            "bcrypt==4.0.1" \
+            "python-dotenv==1.0.0" \
+            "python-multipart==0.0.22" \
+            "cryptography==42.0.4" \
+            "httpx==0.25.0" \
+            "anyio==3.7.1" \
+            "pytest==7.4.3" \
+            "requests==2.33.0"
 
       - name: Run tests
         run: pytest tests/ -v
