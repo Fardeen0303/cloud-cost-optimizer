@@ -3,10 +3,11 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15
+    env_file: .env
     environment:
-      POSTGRES_DB: cost_optimizer
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -17,24 +18,51 @@ services:
     build: ./services/api-gateway
     ports:
       - "8000:8000"
+    env_file: .env
     environment:
       DB_HOST: postgres
-      DB_NAME: cost_optimizer
-      DB_USER: admin
-      DB_PASSWORD: password123
+    volumes:
+      - ./services/notifier:/app/notifier
     depends_on:
       - postgres
 
   cost-scanner:
     build: ./services/cost-scanner
+    env_file: .env
     environment:
       DB_HOST: postgres
-      DB_NAME: cost_optimizer
-      DB_USER: admin
-      DB_PASSWORD: password123
-      AWS_REGION: us-east-1
     depends_on:
       - postgres
+
+  recommendation-engine:
+    build: ./services/recommendation-engine
+    ports:
+      - "8002:8002"
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+    volumes:
+      - ./services/notifier:/app/notifier
+    depends_on:
+      - postgres
+
+  auto-scaler:
+    build: ./services/auto-scaler
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+    depends_on:
+      - postgres
+
+  scheduler:
+    build: ./services/scheduler
+    env_file: .env
+    environment:
+      SCANNER_URL: http://cost-scanner:8001
+      ENGINE_URL: http://recommendation-engine:8002
+    depends_on:
+      - cost-scanner
+      - recommendation-engine
 
   frontend:
     build: ./frontend

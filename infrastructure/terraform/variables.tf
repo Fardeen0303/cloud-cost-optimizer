@@ -17,3 +17,10 @@ variable "db_username" {
 variable "db_password" {
   sensitive = true
 }
+
+
+variable "eks_public_access_cidrs" {
+  description = "CIDRs allowed to access EKS public endpoint"
+  type        = list(string)
+  default     = ["10.0.0.0/8"]
+}

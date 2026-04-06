@@ -96,26 +96,43 @@
 
     <script>
         const API_URL = 'http://localhost:8000';
+        let token = localStorage.getItem('token');
+
+        async function login() {
+            const username = prompt('Username:');
+            const password = prompt('Password:');
+            const res = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            if (!res.ok) { alert('Login failed'); return; }
+            const data = await res.json();
+            token = data.access_token;
+            localStorage.setItem('token', token);
+            loadData();
+        }
+
+        function authHeaders() {
+            return { 'Authorization': `Bearer ${token}` };
+        }
 
         async function loadData() {
+            if (!token) { login(); return; }
             try {
-                // Load resources
-                const resourcesRes = await fetch(`${API_URL}/resources`);
+                const resourcesRes = await fetch(`${API_URL}/resources`, { headers: authHeaders() });
+                if (resourcesRes.status === 401) { token = null; localStorage.removeItem('token'); login(); return; }
                 const resourcesData = await resourcesRes.json();
                 displayResources(resourcesData.resources || []);
                 document.getElementById('totalResources').textContent = (resourcesData.resources || []).length;
 
-                // Load recommendations
-                const recsRes = await fetch(`${API_URL}/recommendations`);
+                const recsRes = await fetch(`${API_URL}/recommendations`, { headers: authHeaders() });
                 const recsData = await recsRes.json();
                 displayRecommendations(recsData.recommendations || []);
                 document.getElementById('totalRecommendations').textContent = (recsData.recommendations || []).length;
 
-                // Calculate potential savings
-                const savings = (recsData.recommendations || []).reduce((sum, rec) => sum + (rec[4] || 0), 0);
+                const savings = (recsData.recommendations || []).reduce((sum, rec) => sum + (rec.potential_savings || 0), 0);
                 document.getElementById('potentialSavings').textContent = `$${savings.toFixed(2)}`;
-                document.getElementById('savingsAchieved').textContent = '$1,245';
-
             } catch (error) {
                 console.error('Error loading data:', error);
             }
@@ -129,9 +146,9 @@
             }
             tbody.innerHTML = resources.map(r => `
                 <tr>
-                    <td>${r[1] || 'N/A'}</td>
-                    <td>${r[2] || 'N/A'}</td>
-                    <td>${new Date(r[4]).toLocaleString()}</td>
+                    <td>${r.resource_id || 'N/A'}</td>
+                    <td>${r.resource_type || 'N/A'}</td>
+                    <td>${new Date(r.scanned_at).toLocaleString()}</td>
                     <td><span class="badge badge-low">Active</span></td>
                 </tr>
             `).join('');
@@ -145,32 +162,33 @@
             }
             tbody.innerHTML = recommendations.map(rec => `
                 <tr>
-                    <td>${rec[1]}</td>
-                    <td>${rec[2] || 'Optimize'}</td>
-                    <td>$${(rec[4] || 0).toFixed(2)}/mo</td>
-                    <td><span class="badge badge-${rec[5]}">${rec[5] || 'medium'}</span></td>
-                    <td>${rec[6] || 'pending'}</td>
+                    <td>${rec.resource_id}</td>
+                    <td>${rec.recommendation_type || 'Optimize'}</td>
+                    <td>$${(rec.potential_savings || 0).toFixed(2)}/mo</td>
+                    <td><span class="badge badge-${rec.priority}">${rec.priority || 'medium'}</span></td>
+                    <td>${rec.status || 'pending'}</td>
                     <td>
-                        <button class="btn btn-approve" onclick="approve(${rec[0]})">✓ Approve</button>
-                        <button class="btn btn-reject" onclick="reject(${rec[0]})">✗ Reject</button>
+                        <button class="btn btn-approve" onclick="updateRec(${rec.id}, 'approve')">✓ Approve</button>
+                        <button class="btn btn-reject" onclick="updateRec(${rec.id}, 'reject')">✗ Reject</button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        function approve(id) {
-            alert(`Approved recommendation #${id}`);
-            loadData();
+        async function updateRec(id, action) {
+            try {
+                const res = await fetch(`${API_URL}/recommendations/${id}/${action}`, {
+                    method: 'POST',
+                    headers: authHeaders()
+                });
+                if (!res.ok) throw new Error(await res.text());
+                loadData();
+            } catch (e) {
+                console.error(`Failed to ${action} recommendation:`, e);
+            }
         }
 
-        function reject(id) {
-            alert(`Rejected recommendation #${id}`);
-            loadData();
-        }
-
-        // Load data on page load
         loadData();
-        // Auto-refresh every 30 seconds
         setInterval(loadData, 30000);
     </script>
 </body>
