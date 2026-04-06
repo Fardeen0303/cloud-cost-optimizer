@@ -60,7 +60,7 @@ class LoginRequest(BaseModel):
 
 
 USERS = {
-    os.getenv('ADMIN_USER', 'admin'): pwd_context.hash(os.getenv('ADMIN_PASSWORD', 'changeme'))
+    os.getenv('ADMIN_USER', 'admin'): pwd_context.hash(os.getenv('ADMIN_PASSWORD', 'changeme')[:72])
 }
 
 
