@@ -8,6 +8,8 @@
 ![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
 ![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
 
 **Enterprise-Grade Cloud Cost Optimization Platform**
 
@@ -26,8 +28,10 @@
 - [Configuration](#-configuration)
 - [API Documentation](#-api-documentation)
 - [Notifications](#-notifications)
+- [Monitoring](#-monitoring)
 - [Testing](#-testing)
 - [Deployment](#-deployment)
+- [CI/CD](#-cicd)
 - [Security](#-security)
 - [Performance Metrics](#-performance-metrics)
 
@@ -49,8 +53,9 @@ Organizations spend 30-40% more on cloud infrastructure than necessary due to:
 
 - **Automated Discovery**: Continuous AWS resource scanning every hour
 - **Intelligent Analysis**: CPU-based underutilization detection
-- **Automated Actions**: Policy-driven optimization with audit trail
+- **Automated Actions**: Policy-driven optimization with full audit trail
 - **Real-time Alerts**: Instant Slack & Microsoft Teams notifications
+- **Live Monitoring**: Prometheus metrics + Grafana dashboards
 - **Secure API**: JWT-authenticated REST API with full Swagger docs
 
 ---
@@ -78,7 +83,7 @@ Organizations spend 30-40% more on cloud infrastructure than necessary due to:
 
 ### 💡 Smart Recommendations Engine
 - **Underutilization Detection**: Flags instances with avg CPU < 20%
-- **Configurable Threshold**: Adjust CPU threshold via environment variable
+- **Configurable Threshold**: Adjust CPU threshold via `CPU_THRESHOLD` env variable
 - **Potential Savings Calculation**: Estimates monthly savings per recommendation
 
 ### ⚡ Automated Optimization
@@ -92,6 +97,11 @@ Organizations spend 30-40% more on cloud infrastructure than necessary due to:
 - Color-coded severity: 🟢 info, 🟡 warning, 🔴 critical
 - Configurable — works with either or both platforms
 
+### 📊 Live Monitoring
+- Prometheus scrapes `/metrics` from API Gateway every 15s
+- Grafana dashboard: request rate, p95 latency, error rate, active requests
+- Auto-provisioned — dashboard loads automatically on startup
+
 ### 🔒 Secure by Default
 - JWT Bearer token authentication on all endpoints
 - Bcrypt password hashing
@@ -99,7 +109,7 @@ Organizations spend 30-40% more on cloud infrastructure than necessary due to:
 - RDS encryption at rest enabled
 - EKS public endpoint restricted by CIDR
 
-### 📊 Interactive Dashboard
+### 🖥️ Interactive Dashboard
 - Real-time resource and recommendation tables
 - One-click approve/reject with live Slack feedback
 - Auto-refreshes every 30 seconds
@@ -108,36 +118,68 @@ Organizations spend 30-40% more on cloud infrastructure than necessary due to:
 
 ## 🏗️ Architecture
 
+### Architecture Diagram
+
+> _Add your architecture diagram image here after uploading to GitHub_
+>
+> To add: upload your diagram image to the repo and replace this line with:
+> `![Architecture](./docs/architecture.png)`
+
 ### Microservices Components
 
 | Service | Responsibility | Technology | Port |
 |---------|---------------|------------|------|
-| **API Gateway** | Auth, routing, approve/reject | FastAPI, PyJWT | 8000 |
+| **API Gateway** | Auth, routing, approve/reject, metrics | FastAPI, PyJWT | 8000 |
 | **Cost Scanner** | AWS EC2 + CloudWatch scanning | Boto3, FastAPI | internal |
 | **Recommendation Engine** | CPU analysis, recommendations | Python, FastAPI | 8002 |
-| **Auto-Scaler** | Execute approved actions | Boto3 | - |
-| **Scheduler** | Trigger scan + analysis | APScheduler | - |
+| **Auto-Scaler** | Execute approved actions, audit log | Boto3 | - |
+| **Scheduler** | Trigger scan + analysis | schedule | - |
 | **Notifier** | Slack & Teams alerts | Requests | - |
 | **Frontend** | Interactive dashboard | Python, HTML | 3000 |
+| **Prometheus** | Metrics collection | prom/prometheus | 9090 |
+| **Grafana** | Metrics visualization | grafana/grafana | 3001 |
+
+### Database Schema
+
+| Table | Purpose |
+|-------|---------|
+| `scanned_resources` | EC2 scan results with avg CPU stored as JSONB |
+| `recommendations` | Pending / approved / rejected / completed recommendations |
+| `optimization_actions` | Full audit trail of every Auto-Scaler action |
 
 ### Data Flow
 
 ```
 Every 1 hour:
-Cost Scanner → scans EC2 instances + CloudWatch CPU
-                    ↓
-            saves to PostgreSQL (with avg_cpu in JSONB)
+Scheduler → Cost Scanner → AWS EC2 + CloudWatch
+                               ↓
+                    PostgreSQL (scanned_resources)
 
 Every 6 hours:
-Recommendation Engine → checks avg_cpu < threshold
-                            ↓
-                    creates recommendation in DB
-                            ↓
-                    fires Slack/Teams alert 💡
+Scheduler → Recommendation Engine → reads scanned_resources
+                                         ↓
+                              avg_cpu < 20%? → YES
+                                         ↓
+                              creates recommendation (pending)
+                                         ↓
+                              💡 Notifier → Slack + Teams alert
 
 User (Dashboard / API):
-→ Approve → Slack alert ✅ → Auto-Scaler stops instance
-→ Reject  → Slack alert ❌
+→ Approve → API Gateway → DB status=approved
+                              ↓
+                        ✅ Notifier → Slack + Teams
+                              ↓
+                        Auto-Scaler → stops EC2 on AWS
+                              ↓
+                        audit log → optimization_actions
+
+→ Reject → API Gateway → DB status=rejected
+                              ↓
+                        ❌ Notifier → Slack + Teams
+
+Continuous:
+Prometheus → scrapes /metrics from API Gateway every 15s
+Grafana    → visualizes request rate, p95 latency, error rate
 ```
 
 ---
@@ -145,27 +187,31 @@ User (Dashboard / API):
 ## 🛠️ Technology Stack
 
 ### Backend
-- Python 3.11+, FastAPI, Boto3, PostgreSQL, psycopg2
+- Python 3.11+, FastAPI 0.103, Boto3, PostgreSQL 15, psycopg2
 
 ### Security
-- PyJWT, Passlib (bcrypt), python-multipart 0.0.22+
+- PyJWT 2.12.0, Passlib (bcrypt), python-multipart 0.0.22+
 
 ### Notifications
 - Slack Incoming Webhooks, Microsoft Teams Webhooks
 
+### Monitoring
+- Prometheus 2.47 (scrapes `/metrics` from API Gateway every 15s)
+- Grafana 10.1 (request rate, p95 latency, error rate, active requests)
+- CloudWatch (EC2 CPU metrics — 7-day average)
+
 ### Infrastructure
-- Docker, Kubernetes (EKS), Terraform, Ansible
+- Docker Compose (local), Kubernetes/EKS (production)
+- Terraform (VPC, EKS, RDS, EC2, IAM provisioning)
+- Ansible (server setup and deployment playbooks)
 
 ### CI/CD
-- Jenkins, Git, Docker Registry
-
-### Monitoring
-- Prometheus (scrapes `/metrics` from API Gateway every 15s)
-- Grafana (dashboard: request rate, p95 latency, error rate)
-- CloudWatch (EC2 CPU metrics)
+- GitHub Actions (runs pytest on every push to `main`)
+- Jenkins (build → test → push → deploy pipeline)
+- Docker Registry
 
 ### Cloud Services (AWS)
-- EC2, RDS (encrypted), EKS, Cost Explorer API, IAM, CloudWatch
+- EC2, RDS (encrypted at rest), EKS, Cost Explorer API, IAM, CloudWatch
 
 ---
 
@@ -188,12 +234,16 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-Access:
-- Dashboard: http://localhost:3000
-- API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3001 (admin / admin)
+### Access
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Frontend Dashboard | http://localhost:3000 | - |
+| API | http://localhost:8000 | JWT token |
+| API Docs (Swagger) | http://localhost:8000/docs | - |
+| API Metrics | http://localhost:8000/metrics | - |
+| Prometheus | http://localhost:9090 | - |
+| Grafana | http://localhost:3001 | admin / admin |
 
 ### Verify Everything is Running
 
@@ -203,6 +253,9 @@ docker-compose ps
 
 # Check API health
 curl http://localhost:8000/health
+
+# Check metrics endpoint
+curl http://localhost:8000/metrics
 ```
 
 ---
@@ -257,6 +310,7 @@ Authorization: Bearer <token>
 
 ```bash
 GET  /health                              # Health check
+GET  /metrics                             # Prometheus metrics
 GET  /resources                           # List scanned AWS resources
 GET  /recommendations                     # List pending recommendations
 POST /recommendations/{id}/approve        # Approve a recommendation
@@ -267,7 +321,7 @@ POST /recommendations/{id}/reject         # Reject a recommendation
 
 ## 🔔 Notifications
 
-Supports **Slack** and **Microsoft Teams** simultaneously.
+Supports **Slack** and **Microsoft Teams** simultaneously. Leave either URL blank to disable that platform.
 
 ### Slack Setup
 1. Go to https://api.slack.com/apps → Create New App
@@ -290,6 +344,32 @@ Supports **Slack** and **Microsoft Teams** simultaneously.
 
 ---
 
+## 📈 Monitoring
+
+Prometheus and Grafana are fully wired up and auto-start with `docker-compose up`.
+
+### Prometheus
+- Scrapes `http://api-gateway:8000/metrics` every 15 seconds
+- Powered by `prometheus-fastapi-instrumentator`
+- Access: http://localhost:9090
+
+### Grafana
+- Datasource auto-provisioned (points to Prometheus)
+- Dashboard auto-loads under **"Cloud Cost Optimizer"** folder
+- Access: http://localhost:3001 (admin / admin)
+
+### Dashboard Panels
+
+| Panel | Metric |
+|-------|--------|
+| Request Rate | `rate(http_requests_total[1m])` |
+| p95 Latency | `histogram_quantile(0.95, ...)` |
+| Error Rate | `rate(http_requests_total{status=~"4\|5.."}[1m])` |
+| Total Requests | `sum(http_requests_total)` |
+| Active Requests | `sum(http_requests_in_progress)` |
+
+---
+
 ## 🧪 Testing
 
 ```bash
@@ -297,7 +377,7 @@ Supports **Slack** and **Microsoft Teams** simultaneously.
 pip install -r tests/requirements-test.txt
 
 # Run all tests
-pytest tests/
+pytest tests/ -v
 
 # Run specific test file
 pytest tests/test_engine.py
@@ -306,9 +386,12 @@ pytest tests/test_notifier.py
 ```
 
 ### Test Coverage
-- `test_engine.py` — underutilization logic (5 tests)
-- `test_api.py` — API auth + endpoints (5 tests)
-- `test_notifier.py` — Slack/Teams alert payloads (5 tests)
+
+| File | What it tests | Tests |
+|------|--------------|-------|
+| `test_engine.py` | Underutilization logic (CPU threshold checks) | 5 |
+| `test_api.py` | API auth, protected endpoints, resource fetch | 5 |
+| `test_notifier.py` | Slack/Teams payload format, alert routing | 5 |
 
 ---
 
@@ -326,30 +409,49 @@ aws eks update-kubeconfig --region us-east-1 --name cost-optimizer-cluster
 kubectl apply -f kubernetes/manifests/
 ```
 
-### Infrastructure Provisioned
-- VPC with public/private subnets
-- EC2 instances (bastion/worker nodes)
-- EKS cluster (endpoint restricted by CIDR)
-- RDS PostgreSQL (encrypted at rest, IAM auth enabled)
-- IAM roles with least-privilege policies
+### Infrastructure Provisioned by Terraform
+
+| Resource | Details |
+|----------|---------|
+| VPC | Public/private subnets |
+| EC2 | Bastion/worker nodes |
+| EKS | Cluster with endpoint restricted by CIDR |
+| RDS | PostgreSQL, encrypted at rest, IAM auth enabled |
+| IAM | Least-privilege roles and policies |
+
+---
+
+## 🔁 CI/CD
+
+### GitHub Actions
+- Triggers on every push/PR to `main`
+- Installs all dependencies and runs `pytest tests/ -v`
+- Badge shown at top of README
+
+### Jenkins Pipeline
+Stages:
+1. **Checkout** — pulls from GitHub
+2. **Build Docker Images** — builds `api-gateway` and `cost-scanner` in parallel
+3. **Push Images** — pushes to Docker Registry
+4. **Deploy to Kubernetes** — applies manifests and rolls out new images
 
 ---
 
 ## 🔒 Security
 
-- JWT Bearer token authentication on all API endpoints
-- Bcrypt password hashing (passlib)
+- JWT Bearer token authentication on all API endpoints (60 min expiry)
+- Bcrypt password hashing via passlib
 - All credentials via environment variables — no hardcoded secrets
 - RDS encryption at rest (`storage_encrypted = true`)
 - RDS IAM authentication enabled
 - EKS public endpoint restricted to specific CIDRs
-- Kubernetes secrets managed via External Secrets / Sealed Secrets
-- Vulnerable dependencies patched (`python-multipart 0.0.22+`, `PyJWT 2.12.0`)
+- Kubernetes secrets managed via Sealed Secrets
+- Patched dependencies: `python-multipart 0.0.22+`, `PyJWT 2.12.0`
 - Log injection prevention on all user inputs
 
 ---
 
-## 📈 Performance Metrics
+## 📊 Performance Metrics
 
 ### System Performance
 - API Response: < 200ms (p95)
